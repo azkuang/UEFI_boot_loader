@@ -1,0 +1,5 @@
+-I./src
+-I./include
+-I./edk2/MdePkg/Include
+-I./edk2/MdePkg/Include/X64
+

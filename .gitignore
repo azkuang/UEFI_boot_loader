@@ -1,0 +1,13 @@
+# Build artifacts
+*.o
+*.efi
+build/
+*.log
+
+# EDK2 clone (if using direct clone)
+edk2/
+
+# IDE files
+.vscode/
+*.swp
+*~
