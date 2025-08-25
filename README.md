@@ -14,30 +14,6 @@ A minimal UEFI boot manager application demonstrating low-level systems programm
 
 ## Architecture
 
-### Project Structure
-```
-uefi-boot-manager/
-├── src/
-│   ├── main.c              # Entry point and main menu loop
-│   ├── console.c           # Console I/O and menu systems
-│   ├── filesystem.c        # File system enumeration and browsing
-│   ├── memory.c            # Memory map display and allocation
-│   ├── boot.c              # Boot option management
-│   └── utils.c             # Utility functions and helpers
-├── include/
-│   ├── common.h            # Common definitions and macros
-│   ├── console.h           # Console function prototypes
-│   ├── filesystem.h        # File system operation prototypes
-│   ├── memory.h            # Memory management prototypes
-│   └── boot.h              # Boot option handling prototypes
-├── build/                  # Build output directory
-├── Makefile               # Build configuration
-├── link.ld                # UEFI linker script
-├── .gitignore             # Git ignore rules
-├── .gitmodules            # EDK2 submodule configuration
-└── README.md              # This file
-```
-
 ### Core Components
 
 #### Console Management (`console.c`)
@@ -81,10 +57,13 @@ uefi-boot-manager/
 ```bash
 # Development tools
 sudo apt update
-sudo apt install build-essential gcc-multilib
+sudo apt install build-essential gcc-multilib python3-pip
 
 # UEFI development dependencies  
-sudo apt install gnu-efi ovmf qemu-system-x86 dosfstools mtools
+sudo apt install ovmf qemu-system-x86 dosfstools mtools uuid-dev
+
+# Python dependencies for EDK2
+pip3 install --user setuptools
 
 # Optional: Cross-compilation tools
 sudo apt install gcc-mingw-w64 binutils-mingw-w64
@@ -98,92 +77,133 @@ git clone --recursive https://github.com/yourusername/uefi-boot-manager.git
 cd uefi-boot-manager
 ```
 
-### 2. Initialize Submodules (if not cloned recursively)
+### 2. Initialize EDK2 Build Environment
 ```bash
+# Initialize EDK2 submodule
 git submodule update --init --recursive
+
+# Setup EDK2 build environment
+cd edk2
+export EDK2_TOOLS_PATH=$PWD/BaseTools
+. edksetup.sh BaseTools
+
+# Build BaseTools (first time only)
+make -C BaseTools
+
+# Return to project root
+cd ..
 ```
 
 ### 3. Build
 ```bash
-make clean && make
+cd edk2
+. edksetup.sh BaseTools
+build -a X64 -t GCC5 -p ../BootManagerPkg/BootManagerPkg.dsc
 ```
 
 ### 4. Test in QEMU
 ```bash
-make run
+# Copy built application
+cp Build/BootManager/DEBUG_GCC5/X64/BootManager.efi disk/EFI/BOOT/BOOTX64.EFI
+
+# Run in QEMU
+qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd \
+                   -drive file=fat:rw:disk,format=raw \
+                   -nographic
 ```
 
 ## Build System
 
-### Makefile Targets
+### EDK2 Build Targets
 ```bash
-make                 # Build bootmanager.efi
-make clean          # Remove build artifacts
-make distclean      # Clean including dependencies
-make run            # Build and run in QEMU
-make debug          # Run with GDB debugging enabled
-make disk           # Create bootable disk image
-make install        # Install to USB device (requires DEVICE=/dev/sdX)
-```
+# Build application (from edk2 directory)
+build -a X64 -t GCC5 -p ../BootManagerPkg/BootManagerPkg.dsc
 
-### Build Configuration
-The build system supports several configuration options:
+# Clean build
+build -a X64 -t GCC5 -p ../BootManagerPkg/BootManagerPkg.dsc cleanall
 
-```bash
 # Debug build with symbols
-make DEBUG=1
+build -a X64 -t GCC5 -b DEBUG -p ../BootManagerPkg/BootManagerPkg.dsc
 
-# Optimize for size
-make OPTIMIZE=size
+# Release build (optimized)
+build -a X64 -t GCC5 -b RELEASE -p ../BootManagerPkg/BootManagerPkg.dsc
 
-# Cross-compile for different architectures
-make ARCH=ia32      # 32-bit x86
-make ARCH=aarch64   # 64-bit ARM
+# Verbose build output
+build -a X64 -t GCC5 -p ../BootManagerPkg/BootManagerPkg.dsc -v
 ```
 
-### Compiler Flags
-```makefile
-CFLAGS = -std=c99 -fno-stack-protector -fpie -fshort-wchar
-CFLAGS += -mno-red-zone -mno-sse -mno-mmx
-CFLAGS += -Wall -Wextra -Werror -pedantic
-CFLAGS += -DGNU_EFI_USE_MS_ABI
+### Build Configuration Files
+The EDK2 build system uses several configuration files:
+
+#### Package Description File (.dsc)
+Defines the overall build configuration, library mappings, and components to build.
+
+#### Component Information File (.inf)  
+Describes individual modules, their source files, dependencies, and build requirements.
+
+#### Package Declaration File (.dec)
+Declares the package interface, including GUIDs, protocols, and library classes.
+
+### Compiler Configuration
+```ini
+# In BootManagerPkg.dsc
+[BuildOptions]
+  GCC:*_*_*_CC_FLAGS = -std=c99 -Wno-unused-parameter
+  GCC:*_*_*_PP_FLAGS = -DEFI_DEBUG
+  MSFT:*_*_*_CC_FLAGS = /wd4201 /wd4204
 ```
 
 ## Testing
 
 ### QEMU Virtual Testing
 ```bash
-# Basic test (automatically runs after build)
-make run
+# Setup test environment (run once)
+mkdir -p disk/EFI/BOOT
+
+# Basic test after building
+cd edk2
+. edksetup.sh BaseTools
+build -a X64 -t GCC5 -p ../BootManagerPkg/BootManagerPkg.dsc
+cd ..
+cp edk2/Build/BootManager/DEBUG_GCC5/X64/BootManager.efi disk/EFI/BOOT/BOOTX64.EFI
+
+# Run in QEMU
+qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd \
+                   -drive file=fat:rw:disk,format=raw \
+                   -nographic
 
 # Test with debugging output
-make run DEBUG=1
-
-# Test with serial console
-make run SERIAL=1
+qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd \
+                   -drive file=fat:rw:disk,format=raw \
+                   -serial stdio -nographic
 
 # Test with specific memory size
-make run MEMORY=512M
+qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd \
+                   -drive file=fat:rw:disk,format=raw \
+                   -m 512M -nographic
 ```
 
 ### Real Hardware Testing
 ```bash
+# Build release version
+cd edk2
+. edksetup.sh BaseTools  
+build -a X64 -t GCC5 -b RELEASE -p ../BootManagerPkg/BootManagerPkg.dsc
+cd ..
+
 # Create bootable USB (replace /dev/sdX with your USB device)
-make install DEVICE=/dev/sdX
+sudo mkfs.fat -F32 /dev/sdX1
+sudo mkdir -p /mnt/usb
+sudo mount /dev/sdX1 /mnt/usb
+sudo mkdir -p /mnt/usb/EFI/BOOT
+sudo cp edk2/Build/BootManager/RELEASE_GCC5/X64/BootManager.efi /mnt/usb/EFI/BOOT/BOOTX64.EFI
+sudo umount /mnt/usb
 
 # Or manually copy to existing EFI system partition
-sudo cp build/bootmanager.efi /boot/efi/EFI/BOOT/BOOTX64.EFI
+sudo cp edk2/Build/BootManager/RELEASE_GCC5/X64/BootManager.efi /boot/efi/EFI/BOOT/BOOTX64.EFI
 ```
 
 **⚠️ Warning**: Testing on real hardware can potentially affect your system's boot configuration. Always backup your current EFI configuration and test in a VM first.
-
-### Test Coverage
-The project includes several test scenarios:
-- Empty file systems
-- Large directory structures
-- Various memory configurations
-- Multiple boot options
-- Error condition handling
 
 ## Usage
 
@@ -214,31 +234,29 @@ The project includes several test scenarios:
 ## Development
 
 ### Adding New Features
-1. Create new source file in `src/`
-2. Add corresponding header in `include/`
-3. Update `Makefile` with new object file
-4. Update `common.h` with any shared definitions
-5. Test thoroughly in QEMU before real hardware
+1. Create new source file in `BootManagerPkg/Application/BootManager/`
+2. Add corresponding header file in same directory
+3. Update `BootManager.inf` [Sources] section with new files
+4. Add any new library dependencies to .inf [LibraryClasses]
+5. Update package .dsc if new libraries are needed
+6. Test thoroughly in QEMU before real hardware
 
 ### Debugging
 ```bash
-# Enable debug output
-make DEBUG=1
+# Enable debug output in build
+cd edk2
+. edksetup.sh BaseTools
+build -a X64 -t GCC5 -b DEBUG -p ../BootManagerPkg/BootManagerPkg.dsc
 
-# Run with GDB support
-make debug
-# In another terminal:
-gdb build/bootmanager.efi
-(gdb) target remote localhost:1234
+# Run with serial debugging
+qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd \
+                   -drive file=fat:rw:../disk,format=raw \
+                   -serial stdio -nographic
+
+# Use EDK2 debug output
+# Add to your code:
+DEBUG((EFI_D_INFO, "Debug message: %s\n", SomeVariable));
 ```
-
-### Code Style Guidelines
-- Follow C99 standard
-- Use UEFI naming conventions (EFI_STATUS, etc.)
-- Include comprehensive error checking
-- Document all public functions
-- Maximum 80 characters per line
-
 ## Architecture Details
 
 ### UEFI Integration
@@ -263,14 +281,19 @@ gdb build/bootmanager.efi
 
 ### Common Build Issues
 ```bash
-# Missing EDK2 headers
+# Missing EDK2 submodule
 git submodule update --init --recursive
 
-# Compiler not found
-sudo apt install gcc-multilib
+# BaseTools not built
+cd edk2
+make -C BaseTools
 
-# Linker errors
-make clean && make
+# Environment not set up
+cd edk2
+. edksetup.sh BaseTools
+
+# Python dependencies missing
+pip3 install --user setuptools
 ```
 
 ### Runtime Issues
@@ -278,19 +301,23 @@ make clean && make
 # Application won't start in QEMU
 # Check OVMF firmware installation
 sudo apt install ovmf
+ls /usr/share/ovmf/
+
+# Build output not found
+# Check build completed successfully
+ls edk2/Build/BootManager/DEBUG_GCC5/X64/
 
 # File system not detected  
-# Ensure disk image is properly formatted as FAT32
-
-# Memory allocation failures
-# Check QEMU memory configuration (-m 512M)
+# Ensure disk image directory structure is correct
+mkdir -p disk/EFI/BOOT
 ```
 
 ### Debugging Tips
-1. Use serial console output for debugging (`make run SERIAL=1`)
-2. Add debug prints to trace execution flow
-3. Check UEFI return codes for all API calls
-4. Use QEMU monitor for system state inspection
+1. Use EDK2's DEBUG() macro for output (`DEBUG((EFI_D_INFO, "Message\n"));`)
+2. Enable serial console in QEMU for debug output
+3. Check EFI_STATUS return codes from all UEFI API calls
+4. Use QEMU monitor (`Ctrl+Alt+2`) for system state inspection
+5. Build debug version for detailed error information
 
 ## Contributing
 
@@ -337,7 +364,9 @@ This project is released under the MIT License. See `LICENSE` file for details.
 
 ## Author
 
-Alex Kuang 
-Email: alexzkuang0314@gmail.com  
-LinkedIn: [LinkedIn](https://linkedin.com/in/azkuang0314)  
+Alex Kuang
+Email: alexzkuang0314@gmail.com
+LinkedIn: [My LinkedIn](https://linkedin.com/in/azkuang0314)  
 
+---
+*This project demonstrates low-level systems programming skills relevant to UEFI development, embedded systems, and firmware engineering positions.*
