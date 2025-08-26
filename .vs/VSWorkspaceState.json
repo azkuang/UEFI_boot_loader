@@ -1,0 +1,10 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\BootManagerPkg",
+    "\\BootManagerPkg\\Application",
+    "\\BootManagerPkg\\Application\\BootManager"
+  ],
+  "SelectedNode": "\\BootManagerPkg\\Application\\BootManager\\main.c",
+  "PreviewInSolutionExplorer": false
+}

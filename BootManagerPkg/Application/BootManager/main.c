@@ -1,3 +1,17 @@
-#include <uefi.h>
+#include "Uefi/UefiBaseType.h"
+#include <Uefi.h>
+#include <Library/UefiLib.h>
+#include <Library/UefiApplicationEntryPoint.h>
 
+EFI_STATUS
+EFIAPI
+UefiMain
+(
+		IN EFI_HANDLE ImageHandle, 
+		IN EFI_SYSTEM_TABLE *SystemTable
+)
+{
+	Print(L"Hello UEFI\n");
+	return EFI_SUCCESS;
+}
 
