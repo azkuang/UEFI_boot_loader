@@ -1,5 +1,4 @@
--I./src
--I./include
+-I./BootManagerPkg/Application/BootManager
 -I./edk2/MdePkg/Include
 -I./edk2/MdePkg/Include/X64
 

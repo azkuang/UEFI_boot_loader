@@ -3,6 +3,7 @@
 *.efi
 build/
 *.log
+*.img
 
 # EDK2 clone (if using direct clone)
 edk2/
