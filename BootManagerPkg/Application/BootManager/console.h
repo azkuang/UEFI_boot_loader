@@ -1,4 +1,5 @@
-#include <uefi.h>
+#ifndef CONSOLE_H
+#define CONSOLE_H
 
 // Initialize console protocols
 EFI_STATUS console_init(void);
@@ -11,3 +12,5 @@ UINTN display_main_menu(void);
 
 // Clear screen and reset cursor
 void console_clear(void);
+
+#endif

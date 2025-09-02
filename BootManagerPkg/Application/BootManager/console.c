@@ -1,5 +1,7 @@
-#include <uefi.h>
-
+#include <Uefi.h>
+#include <Library/UefiLib.h>
+#include <Library/UefiApplicationEntryPoint.h>
+#include <Library/UefiBootServicesTableLib.h>
 
 // Initialize console protocols
 EFI_STATUS console_init(void);

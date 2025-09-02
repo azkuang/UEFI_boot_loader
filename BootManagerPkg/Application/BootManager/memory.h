@@ -1,4 +1,5 @@
-#include <uefi.h>
+#ifndef MEMORY_H
+#define MEMORY_H
 
 // Get and display system memory map
 EFI_STATUS display_memory_map(void);
@@ -8,3 +9,5 @@ void* allocate_memory(UINTN size);
 
 // Memory deallocation wrapper
 void free_memory(void *ptr);
+
+#endif
