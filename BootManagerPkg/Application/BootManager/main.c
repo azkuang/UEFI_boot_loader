@@ -1,7 +1,7 @@
 #include <Uefi.h>
-#include <Library/UefiLib.h>
-#include <Library/UefiApplicationEntryPoint.h>
-#include <Library/UefiBootServicesTableLib.h>
+#include "Uefi/UefiBaseType.h"
+#include "Uefi/UefiSpec.h"
+#include "console.h"
 
 EFI_STATUS
 EFIAPI
@@ -14,16 +14,14 @@ UefiMain
 	EFI_STATUS Status;
 	EFI_INPUT_KEY Key;
 
-	// Clear screen and print the message
-	gST->ConOut->ClearScreen(gST->ConOut);
-	Print(L"Hello UEFI\n");
-	Print(L"Press any key to exit...\n");
+	Status = console_init();
 
-	while (1) {
-		Status = gST->ConIn->ReadKeyStroke(gST->ConIn, &Key);
-		if (Status == EFI_SUCCESS)
-			break;
+	if (Status != EFI_SUCCESS) {
+		return EFI_ERROR(Status);
 	}
+
+	console_print_colored(L"UEFI", EFI_YELLOW, EFI_GREEN);
+	display_console_print(Status, &Key);
 
 	return EFI_SUCCESS;
 }
