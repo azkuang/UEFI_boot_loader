@@ -1,90 +1,153 @@
-# UEFI Boot Manager
+# Alex UEFI — Custom UEFI Firmware Modules
 
-A minimal UEFI boot manager application demonstrating low-level systems programming concepts for firmware development. This project showcases UEFI protocols, memory management, file system operations, and boot option handling in a bare-metal environment.
+A collection of UEFI firmware modules built with [EDK2](https://github.com/tianocore/edk2),
+targeting the OVMF virtual platform and tested in QEMU. The main project is **AlexSplashDxe**,
+a DXE driver baked into the firmware image that displays a hardware info splash screen on
+every boot before the OS loads.
 
-## Features
+---
 
-- **Interactive Console Interface**: Colored text output with keyboard navigation
-- **File System Browser**: Enumerate and browse files across multiple file systems
-- **Memory Management**: Display system memory map and custom allocation routines
-- **Boot Option Manager**: List, display, and launch available boot options
-- **Cross-Platform**: Supports x86-64 UEFI systems (physical and virtual)
+## AlexSplashDxe — Boot Splash Driver
 
-## Screenshots
+A UEFI DXE driver that automatically runs at boot and displays a branded splash screen
+with live hardware information read directly from firmware protocols — no OS, no drivers,
+no userspace.
 
-## Architecture
+### What it displays
 
-### Core Components
+```
+======================================
+        A L E X   U E F I
+======================================
+BIOS     : EDK II  2.10
+System   : QEMU Standard PC (Q35 + ICH9)
 
-#### Console Management (`console.c`)
-- UEFI Simple Text Input/Output protocol handling
-- Colored text output with RGB support
-- Keyboard input processing with special key handling
-- Menu system with arrow key navigation
+CPU      : Intel(R) Xeon(R) Gold ... @ 2500 MHz  [4 cores]
 
-#### File System Interface (`filesystem.c`)
-- Simple File System Protocol enumeration
-- Directory traversal and file information display
-- Multi-file system support (FAT32, NTFS detection)
-- File attribute and timestamp handling
+Memory   :
+  Slot 0 : 2048 MB  DDR4  @ 2666 MHz
+  Slot 1 : (empty)
 
-#### Memory Management (`memory.c`)
-- System memory map retrieval and parsing
-- Memory type classification (Conventional, Reserved, ACPI, etc.)
-- Custom memory allocation wrappers
-- Memory usage statistics and visualization
+PCI Devices:
+  00:00.0  8086:1237  Bridge
+  00:01.3  8086:7113  Bridge
+  00:02.0  1234:1111  Display Controller
 
-#### Boot Option Manager (`boot.c`)
-- Boot option enumeration from NVRAM
-- Boot variable parsing and display
-- Boot option execution with error handling
-- Support for various boot device types
+Storage:
+  Disk 0  : 20480 MB  (fixed)
 
-## Prerequisites
+Press -> to continue...
+======================================
+```
 
-### Development Environment
-- **Compiler**: GCC 9+ or Clang 10+ with UEFI target support
-- **Build Tools**: GNU Make 4.0+
-- **Architecture**: x86_64 host system
-- **OS**: Linux (Ubuntu 20.04+ recommended)
+### How it works
 
-### Testing Environment
-- **Emulator**: QEMU 6.0+ with KVM support
-- **Firmware**: OVMF (Open Virtual Machine Firmware)
-- **Disk Tools**: `dosfstools` for FAT32 image creation
-  
-## License
+- **Module type:** DXE_DRIVER — loads during the UEFI Driver Execution Environment phase
+- **Trigger:** Registers a `gEfiEventReadyToBootGuid` signal event at TPL_CALLBACK;
+  the callback fires synchronously right before BDS hands off to the boot image
+- **Hardware info sources:**
+  - CPU, memory, BIOS, system info — SMBIOS types 0, 1, 4, 17 via `EFI_SMBIOS_PROTOCOL`
+  - PCI devices — bus:device.function + VID:DID + class via `EFI_PCI_IO_PROTOCOL`
+  - Storage — whole-disk block devices via `EFI_BLOCK_IO_PROTOCOL`
+- **Input handling:** Drops TPL to `TPL_APPLICATION` before `WaitForEvent` (required by
+  the UEFI spec), waits for right arrow key only, then raises TPL back to `TPL_CALLBACK`
+  before returning
 
-This project is released under the MIT License. See `LICENSE` file for details.
+### Files
 
-## Acknowledgments
+```
+MyPkg/AlexSplashDxe/
+  AlexSplashDxe.inf   — module manifest: GUID, entry point, dependencies
+  AlexSplashDxe.c     — entry point, ReadyToBoot event registration, display logic
+  HwInfo.c            — hardware enumeration (SMBIOS, PCI IO, Block IO)
+  HwInfo.h            — function declarations
+```
 
-- **Tianocore EDK2**: UEFI headers and specifications
-- **GNU-EFI**: Alternative UEFI development framework
-- **OVMF**: Open source UEFI firmware for virtualization
-- **QEMU**: Essential for UEFI development and testing
+---
 
-## References
+## Other Modules
 
-### UEFI Specifications
-- [UEFI Specification 2.9](https://uefi.org/specifications)
-- [Platform Initialization Specification](https://uefi.org/specifications)
+| Module | Type | Description |
+|--------|------|-------------|
+| `MyApp` | UEFI_APPLICATION | Reads and hex-dumps UEFI NVRAM variables (BootCurrent, Timeout) |
+| `MyDxeDriver` | DXE_DRIVER | Minimal DXE driver skeleton |
+| `SysTableWalker` | UEFI_APPLICATION | Walks and prints the EFI System Table structure |
+| `TimerApp` | UEFI_APPLICATION | Demonstrates UEFI timer events |
+| `VarEnum` | UEFI_APPLICATION | Enumerates all NVRAM variables with attributes |
 
-### Development Resources
-- [EDK2 Documentation](https://github.com/tianocore/edk2)
-- [GNU-EFI Project](https://sourceforge.net/projects/gnu-efi/)
-- [OVMF Documentation](https://github.com/tianocore/tianocore.github.io/wiki/OVMF)
+---
 
-### Learning Materials
-- "Beyond BIOS: Developing with the Unified Extensible Firmware Interface" by Vincent Zimmer
-- Intel UEFI Development Training Materials
-- ARM UEFI Development Guide
+## Build Instructions
+
+This package is an overlay for EDK2 — clone EDK2 first, then drop this repo in.
+
+### Prerequisites
+- Linux build environment
+- EDK2 build dependencies: `build-essential nasm iasl python3 uuid-dev`
+- GCC 5+
+
+### Steps
+
+```bash
+# 1. Clone EDK2
+git clone https://github.com/tianocore/edk2.git
+cd edk2
+git submodule update --init
+
+# 2. Clone this repo into the edk2 tree
+git clone https://github.com/azkuang0314/Alex_UEFI MyPkg
+
+# 3. Apply the OVMF integration patch (wires AlexSplashDxe into the firmware image)
+git apply MyPkg/ovmf_integration.patch
+
+# 4. Set up the build environment
+source edksetup.sh
+
+# 5. Build OVMF with the splash driver included
+build -p OvmfPkg/OvmfPkgX64.dsc -a X64 -t GCC5
+```
+
+Output: `Build/OvmfX64/DEBUG_GCC5/FV/OVMF.fd`
+
+### Test in QEMU
+
+```bash
+cp Build/OvmfX64/DEBUG_GCC5/FV/OVMF.fd /tmp/ovmf_test.fd
+
+qemu-system-x86_64 \
+  -drive if=pflash,format=raw,file=/tmp/ovmf_test.fd \
+  -m 2G -nographic -net none
+```
+
+The splash screen appears before the UEFI Shell. Press the right arrow key to continue.
+Press `Ctrl+A` then `X` to exit QEMU.
+
+> **Note:** Copy OVMF.fd before running — QEMU writes back to the file (NVRAM variables)
+> and will corrupt your build output if you point it at the original.
+
+---
+
+## Key Concepts Demonstrated
+
+- **DXE driver architecture** — module lifecycle, entry point, depex
+- **UEFI event system** — `CreateEventEx`, signal events, ReadyToBoot group
+- **TPL management** — raising/lowering Task Priority Level within a callback to satisfy
+  `WaitForEvent`'s TPL_APPLICATION requirement while preserving synchronous dispatch
+- **SMBIOS table parsing** — walking typed records and extracting null-terminated string tables
+- **PCI enumeration** — `LocateHandleBuffer`, config space reads via `EFI_PCI_IO_PROTOCOL`
+- **Block device enumeration** — filtering whole disks from partitions via `EFI_BLOCK_IO_PROTOCOL`
+- **EDK2 build system** — INF module manifests, DSC platform descriptors, FDF firmware image layout
+- **OVMF platform integration** — adding a custom module to an existing firmware platform
+
+---
 
 ## Author
 
-Alex Kuang
-Email: alexzkuang0314@gmail.com
-LinkedIn: [My LinkedIn](https://linkedin.com/in/azkuang0314)  
+Alex Kuang  
+Email: <alexzkuang0314@gmail.com>  
+LinkedIn: [linkedin.com/in/azkuang0314](https://linkedin.com/in/azkuang0314)
 
 ---
-*This project demonstrates low-level systems programming skills relevant to UEFI development, embedded systems, and firmware engineering positions.*
+
+*This project demonstrates low-level systems programming skills relevant to UEFI firmware
+development, embedded systems, and firmware engineering positions.*

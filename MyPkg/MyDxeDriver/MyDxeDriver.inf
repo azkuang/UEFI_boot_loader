@@ -1,0 +1,22 @@
+[Defines]
+  INF_VERSION    = 0x00010005
+  BASE_NAME      = MyDxeDriver
+  FILE_GUID      = 976240a8-9cb9-4e6b-889d-0f4e80d1f4fa
+  MODULE_TYPE    = DXE_DRIVER
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = MyDxeDriverEntry
+
+[Sources]
+  MyDxeDriver.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  DebugLib
+  UefiLib
+
+[Depex]
+  gEfiVariableArchProtocolGuid

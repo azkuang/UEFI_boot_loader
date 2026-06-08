@@ -1,0 +1,18 @@
+[Defines]
+  INF_VERSION    = 0x00010006
+  BASE_NAME      = SysTableWalker
+  FILE_GUID      = b7c3d1e2-f4a5-6789-bcde-012345678901
+  MODULE_TYPE    = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = UefiMain
+
+[Sources]
+  SysTableWalker.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib

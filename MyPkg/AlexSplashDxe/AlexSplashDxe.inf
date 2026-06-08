@@ -1,0 +1,37 @@
+## AlexSplashDxe — text-mode splash screen + hardware info on ReadyToBoot
+
+[Defines]
+  INF_VERSION    = 0x00010005
+  BASE_NAME      = AlexSplashDxe
+  FILE_GUID      = f3a2b1c0-d4e5-4678-9abc-def012345678
+  MODULE_TYPE    = DXE_DRIVER
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = AlexSplashDxeEntry
+
+[Sources]
+  AlexSplashDxe.c
+  HwInfo.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  UefiLib
+  BaseLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  DebugLib
+
+[Protocols]
+  gEfiSmbiosProtocolGuid
+  gEfiPciIoProtocolGuid
+  gEfiBlockIoProtocolGuid
+
+[Guids]
+  gEfiEventReadyToBootGuid
+
+[Depex]
+  TRUE

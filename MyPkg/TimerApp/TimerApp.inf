@@ -1,0 +1,21 @@
+[Defines]
+  INF_VERSION    = 0x00010006
+  BASE_NAME      = TimerApp
+  FILE_GUID      = a1762dd8-e9b8-42ef-a6c8-81920b06d978
+  MODULE_TYPE    = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = UefiMain
+
+[Sources]
+  TimerApp.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+
+

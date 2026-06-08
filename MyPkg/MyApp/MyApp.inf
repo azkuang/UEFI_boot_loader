@@ -1,0 +1,20 @@
+[Defines]
+  INF_VERSION    = 0x00010006
+  BASE_NAME      = MyApp
+  FILE_GUID      = a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  MODULE_TYPE    = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = UefiMain
+
+[Sources]
+  MyApp.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiRuntimeServicesTableLib
+  MemoryAllocationLib

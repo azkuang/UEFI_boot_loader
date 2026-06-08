@@ -1,0 +1,19 @@
+[Defines]
+  INF_VERSION    = 0x00010006
+  BASE_NAME      = VarEnum
+  FILE_GUID      = 8A3E7B4C-1D2F-4E9A-BC05-7F6D3A1E8C24
+  MODULE_TYPE    = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = UefiMain
+
+[Sources]
+  VarEnum.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
